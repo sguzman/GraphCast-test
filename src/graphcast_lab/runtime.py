@@ -16,10 +16,32 @@ def _build_forecast_parser(subparsers: argparse._SubParsersAction[argparse.Argum
     forecast.set_defaults(func=forecast_main)
 
 
+def _build_inspect_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    inspect = subparsers.add_parser("inspect")
+    inspect.add_argument("--dataset", required=True)
+    inspect.set_defaults(func=inspect_main)
+
+
+def _build_plot_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    plot = subparsers.add_parser("plot")
+    plot.add_argument("--dataset", required=True)
+    plot.add_argument("--variable", required=True)
+    plot.add_argument("--time-index", type=int, default=0)
+    plot.add_argument("--level", type=int)
+    plot.add_argument("--lat-min", type=float)
+    plot.add_argument("--lat-max", type=float)
+    plot.add_argument("--lon-min", type=float)
+    plot.add_argument("--lon-max", type=float)
+    plot.add_argument("--output", required=True)
+    plot.set_defaults(func=plot_main)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m graphcast_lab.runtime")
     subparsers = parser.add_subparsers(dest="command", required=True)
     _build_forecast_parser(subparsers)
+    _build_inspect_parser(subparsers)
+    _build_plot_parser(subparsers)
     return parser
 
 
@@ -93,6 +115,74 @@ def forecast_main(args: argparse.Namespace) -> int:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     predictions.to_netcdf(output_path)
+    print(output_path)
+    return 0
+
+
+def inspect_main(args: argparse.Namespace) -> int:
+    import xarray
+
+    dataset_path = Path(args.dataset)
+    ds = xarray.open_dataset(dataset_path, decode_timedelta=True)
+
+    print(f"path: {dataset_path}")
+    print(f"dims: {dict(ds.sizes)}")
+    print("coords:")
+    for name, coord in ds.coords.items():
+        values = coord.values
+        if values.size:
+            print(f"  {name}: {values[0]} .. {values[-1]}")
+        else:
+            print(f"  {name}: <empty>")
+
+    print("variables:")
+    for name, var in ds.data_vars.items():
+        dims = ",".join(var.dims)
+        print(f"  {name}: dims={dims} dtype={var.dtype}")
+    return 0
+
+
+def _subset_region(data_array, args):
+    if args.lat_min is not None or args.lat_max is not None:
+        lat_min = -90.0 if args.lat_min is None else args.lat_min
+        lat_max = 90.0 if args.lat_max is None else args.lat_max
+        data_array = data_array.sel(lat=slice(lat_min, lat_max))
+    if args.lon_min is not None or args.lon_max is not None:
+        lon_min = 0.0 if args.lon_min is None else args.lon_min
+        lon_max = 360.0 if args.lon_max is None else args.lon_max
+        data_array = data_array.sel(lon=slice(lon_min, lon_max))
+    return data_array
+
+
+def plot_main(args: argparse.Namespace) -> int:
+    import matplotlib.pyplot as plt
+    import xarray
+
+    dataset_path = Path(args.dataset)
+    output_path = Path(args.output)
+    ds = xarray.open_dataset(dataset_path, decode_timedelta=True)
+
+    if args.variable not in ds:
+        raise SystemExit(f"Variable not found: {args.variable}")
+
+    data = ds[args.variable]
+    if "time" in data.dims:
+        data = data.isel(time=args.time_index)
+    if "batch" in data.dims:
+        data = data.isel(batch=0)
+    if "level" in data.dims:
+        if args.level is None:
+            raise SystemExit("This variable has a `level` dimension. Pass `--level`.")
+        data = data.sel(level=args.level)
+
+    data = _subset_region(data, args)
+
+    plt.figure(figsize=(10, 5))
+    data.plot()
+    plt.title(args.variable)
+    plt.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, dpi=150)
     print(output_path)
     return 0
 

@@ -81,6 +81,27 @@ Run a forecast:
 uv run --python 3.11 main.py forecast --bundle graphcast-small --steps 4
 ```
 
+Inspect a forecast file:
+
+```bash
+uv run --python 3.11 main.py inspect \
+  ".cache/graphcast/outputs/source-era5_date-2022-01-01_res-1.0_levels-13_steps-04.forecast.nc"
+```
+
+Plot one regional slice:
+
+```bash
+uv run --python 3.11 main.py plot \
+  ".cache/graphcast/outputs/source-era5_date-2022-01-01_res-1.0_levels-13_steps-04.forecast.nc" \
+  --variable 2m_temperature \
+  --time-index 0 \
+  --lat-min 14 \
+  --lat-max 33 \
+  --lon-min 250 \
+  --lon-max 268 \
+  --output ".cache/graphcast/outputs/mexico-2m-temperature-t0.png"
+```
+
 Use explicit files instead of a bundle:
 
 ```bash
@@ -100,3 +121,5 @@ uv run --python 3.11 main.py forecast \
 ## Outputs
 
 Forecast outputs are written as NetCDF files so you can inspect them with `xarray`, `ncdump`, or downstream notebooks.
+
+GraphCast itself is a global forecast model. That means inference runs on the whole world grid, but you can inspect or plot only a regional subset afterward.

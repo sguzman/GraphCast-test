@@ -230,6 +230,64 @@ def cmd_forecast(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_inspect(args: argparse.Namespace) -> int:
+    if not venv_exists():
+        raise SystemExit("Run `graphcast-lab env create` first.")
+
+    env = os.environ.copy()
+    src_path = str(REPO_ROOT / "src")
+    env["PYTHONPATH"] = src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+
+    cmd = [
+        str(venv_python()),
+        "-m",
+        "graphcast_lab.runtime",
+        "inspect",
+        "--dataset",
+        args.dataset,
+    ]
+    run(cmd, env=env)
+    return 0
+
+
+def cmd_plot(args: argparse.Namespace) -> int:
+    if not venv_exists():
+        raise SystemExit("Run `graphcast-lab env create` first.")
+
+    env = os.environ.copy()
+    src_path = str(REPO_ROOT / "src")
+    env["PYTHONPATH"] = src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+
+    cmd = [
+        str(venv_python()),
+        "-m",
+        "graphcast_lab.runtime",
+        "plot",
+        "--dataset",
+        args.dataset,
+        "--variable",
+        args.variable,
+        "--time-index",
+        str(args.time_index),
+        "--output",
+        args.output,
+    ]
+    if args.level is not None:
+        cmd.extend(["--level", str(args.level)])
+    if args.lat_min is not None:
+        cmd.extend(["--lat-min", str(args.lat_min)])
+    if args.lat_max is not None:
+        cmd.extend(["--lat-max", str(args.lat_max)])
+    if args.lon_min is not None:
+        cmd.extend(["--lon-min", str(args.lon_min)])
+    if args.lon_max is not None:
+        cmd.extend(["--lon-max", str(args.lon_max)])
+
+    run(cmd, env=env)
+    print(args.output)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="graphcast-lab")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -281,6 +339,22 @@ def build_parser() -> argparse.ArgumentParser:
     forecast_parser.add_argument("--output")
     forecast_parser.add_argument("--steps", type=int, default=4)
     forecast_parser.set_defaults(func=cmd_forecast)
+
+    inspect_parser = subparsers.add_parser("inspect", help="Summarize a forecast or source dataset")
+    inspect_parser.add_argument("dataset")
+    inspect_parser.set_defaults(func=cmd_inspect)
+
+    plot_parser = subparsers.add_parser("plot", help="Render one variable as a PNG, optionally cropped to a region")
+    plot_parser.add_argument("dataset")
+    plot_parser.add_argument("--variable", required=True)
+    plot_parser.add_argument("--time-index", type=int, default=0)
+    plot_parser.add_argument("--level", type=int)
+    plot_parser.add_argument("--lat-min", type=float)
+    plot_parser.add_argument("--lat-max", type=float)
+    plot_parser.add_argument("--lon-min", type=float)
+    plot_parser.add_argument("--lon-max", type=float)
+    plot_parser.add_argument("--output", required=True)
+    plot_parser.set_defaults(func=cmd_plot)
 
     return parser
 
