@@ -128,6 +128,7 @@ uv run --python 3.11 main.py forecast \
 - `graphcast-small`: 1.0 degree GraphCast checkpoint, matching ERA5 sample dataset, stats files
 - `graphcast-operational`: operational 0.25 degree checkpoint, matching HRES sample dataset, stats files
 - `graphcast`: 0.25 degree 37-level checkpoint, matching ERA5 sample dataset, stats files
+- For `graphcast`, the curated bundle intentionally uses the smaller official `steps-01` sample dataset so higher-resolution smoke tests do not require the much larger `steps-04` sample file.
 
 ## Outputs
 

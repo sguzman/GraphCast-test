@@ -42,7 +42,7 @@ BUNDLES: dict[str, list[str]] = {
     ],
     "graphcast": [
         "graphcast/params/GraphCast - ERA5 1979-2017 - resolution 0.25 - pressure levels 37 - mesh 2to6 - precipitation input and output.npz",
-        "graphcast/dataset/source-era5_date-2022-01-01_res-0.25_levels-37_steps-04.nc",
+        "graphcast/dataset/source-era5_date-2022-01-01_res-0.25_levels-37_steps-01.nc",
         *DEFAULT_STATS,
     ],
 }
