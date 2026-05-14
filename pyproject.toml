@@ -1,7 +1,20 @@
 [project]
 name = "graphcast-test"
 version = "0.1.0"
-description = "Add your description here"
+description = "CLI wrapper for fetching GraphCast assets and running local forecasts"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11,<3.12"
 dependencies = []
+
+[project.scripts]
+graphcast-lab = "graphcast_lab.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,6 +1,10 @@
-def main():
-    print("Hello from graphcast-test!")
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+
+from graphcast_lab.cli import main
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
