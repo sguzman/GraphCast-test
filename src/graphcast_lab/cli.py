@@ -123,6 +123,9 @@ def cmd_list(args: argparse.Namespace) -> int:
 def cmd_fetch_object(args: argparse.Namespace) -> int:
     object_name = args.object_name
     destination = Path(args.output) if args.output else cache_path_for_object(object_name)
+    if destination.exists() and not args.force:
+        print(f"exists\t{destination}")
+        return 0
     path = download_object(object_name, destination)
     print(path)
     return 0
@@ -246,6 +249,7 @@ def build_parser() -> argparse.ArgumentParser:
     fetch_parser = subparsers.add_parser("fetch-object", help="Download one bucket object into the local cache")
     fetch_parser.add_argument("object_name")
     fetch_parser.add_argument("--output")
+    fetch_parser.add_argument("--force", action="store_true")
     fetch_parser.set_defaults(func=cmd_fetch_object)
 
     bundle_parser = subparsers.add_parser("bundle", help="List or fetch curated asset bundles")

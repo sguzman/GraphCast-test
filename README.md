@@ -17,6 +17,8 @@ The environment installer uses the official source repo at `google-deepmind/grap
 
 ## Quick start
 
+This is a `uv` project. Use `uv run` for commands and let `uv` manage the local `.venv`.
+
 ```bash
 uv run --python 3.11 main.py init
 uv run --python 3.11 main.py env create
@@ -25,6 +27,12 @@ uv run --python 3.11 main.py forecast --bundle graphcast-small
 ```
 
 That writes a forecast file under `.cache/graphcast/outputs/`.
+
+Fetching is intended to be idempotent:
+
+- `bundle fetch` skips files that already exist
+- `fetch-object` now skips existing files unless you pass `--force`
+- `env create` is safe to rerun and will converge the local `.venv`
 
 ## Commands
 
@@ -45,6 +53,14 @@ Fetch one specific object:
 ```bash
 uv run --python 3.11 main.py fetch-object \
   "graphcast/stats/mean_by_level.nc"
+```
+
+Force a re-download:
+
+```bash
+uv run --python 3.11 main.py fetch-object \
+  "graphcast/stats/mean_by_level.nc" \
+  --force
 ```
 
 List curated bundles:
