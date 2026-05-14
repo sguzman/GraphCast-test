@@ -36,12 +36,23 @@ def _build_plot_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentP
     plot.set_defaults(func=plot_main)
 
 
+def _build_point_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    point = subparsers.add_parser("point")
+    point.add_argument("--dataset", required=True)
+    point.add_argument("--variable", required=True)
+    point.add_argument("--lat", type=float, required=True)
+    point.add_argument("--lon", type=float, required=True)
+    point.add_argument("--units", choices=["native", "c", "f"], default="native")
+    point.set_defaults(func=point_main)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m graphcast_lab.runtime")
     subparsers = parser.add_subparsers(dest="command", required=True)
     _build_forecast_parser(subparsers)
     _build_inspect_parser(subparsers)
     _build_plot_parser(subparsers)
+    _build_point_parser(subparsers)
     return parser
 
 
@@ -184,6 +195,66 @@ def plot_main(args: argparse.Namespace) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=150)
     print(output_path)
+    return 0
+
+
+def _normalize_lon(lon: float) -> float:
+    return lon % 360.0
+
+
+def _convert_temperature(values, units: str):
+    if units == "native":
+        return values, "K"
+    celsius = values - 273.15
+    if units == "c":
+        return celsius, "C"
+    fahrenheit = celsius * 9.0 / 5.0 + 32.0
+    return fahrenheit, "F"
+
+
+def _format_lead_time(value) -> str:
+    seconds = int(value / 1_000_000_000)
+    hours = seconds // 3600
+    if hours % 24 == 0:
+        days = hours // 24
+        return f"+{days}d"
+    return f"+{hours}h"
+
+
+def point_main(args: argparse.Namespace) -> int:
+    import xarray
+
+    dataset_path = Path(args.dataset)
+    ds = xarray.open_dataset(dataset_path, decode_timedelta=True)
+
+    if args.variable not in ds:
+        raise SystemExit(f"Variable not found: {args.variable}")
+
+    data = ds[args.variable]
+    if "batch" in data.dims:
+        data = data.isel(batch=0)
+    if "level" in data.dims:
+        raise SystemExit("Point output for `level` variables is not implemented yet. Use a surface variable like `2m_temperature`.")
+
+    lon_360 = _normalize_lon(args.lon)
+    series = data.sel(lat=args.lat, lon=lon_360, method="nearest")
+
+    print(f"requested_lat={args.lat}")
+    print(f"requested_lon={args.lon}")
+    print(f"requested_lon_360={lon_360}")
+    print(f"nearest_lat={float(series.lat.values)}")
+    print(f"nearest_lon_360={float(series.lon.values)}")
+    print(f"nearest_lon={float(series.lon.values) - 360.0 if float(series.lon.values) > 180.0 else float(series.lon.values)}")
+
+    values = series.values
+    unit_label = "native"
+    if args.variable in {"2m_temperature", "temperature"}:
+        values, unit_label = _convert_temperature(values, args.units)
+    elif args.units != "native":
+        raise SystemExit(f"Unit conversion is only implemented for temperature variables, not `{args.variable}`.")
+
+    for t, v in zip(series.time.values, values):
+        print(f"{_format_lead_time(t)}\t{float(v):.2f}\t{unit_label}")
     return 0
 
 

@@ -288,6 +288,34 @@ def cmd_plot(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_point(args: argparse.Namespace) -> int:
+    if not venv_exists():
+        raise SystemExit("Run `graphcast-lab env create` first.")
+
+    env = os.environ.copy()
+    src_path = str(REPO_ROOT / "src")
+    env["PYTHONPATH"] = src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+
+    cmd = [
+        str(venv_python()),
+        "-m",
+        "graphcast_lab.runtime",
+        "point",
+        "--dataset",
+        args.dataset,
+        "--variable",
+        args.variable,
+        "--lat",
+        str(args.lat),
+        "--lon",
+        str(args.lon),
+        "--units",
+        args.units,
+    ]
+    run(cmd, env=env)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="graphcast-lab")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -355,6 +383,14 @@ def build_parser() -> argparse.ArgumentParser:
     plot_parser.add_argument("--lon-max", type=float)
     plot_parser.add_argument("--output", required=True)
     plot_parser.set_defaults(func=cmd_plot)
+
+    point_parser = subparsers.add_parser("point", help="Print the nearest-grid time series for one point")
+    point_parser.add_argument("dataset")
+    point_parser.add_argument("--variable", required=True)
+    point_parser.add_argument("--lat", type=float, required=True)
+    point_parser.add_argument("--lon", type=float, required=True)
+    point_parser.add_argument("--units", choices=["native", "c", "f"], default="native")
+    point_parser.set_defaults(func=cmd_point)
 
     return parser
 

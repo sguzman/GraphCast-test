@@ -102,6 +102,17 @@ uv run --python 3.11 main.py plot \
   --output ".cache/graphcast/outputs/mexico-2m-temperature-t0.png"
 ```
 
+Print a point forecast for KLAX in Fahrenheit:
+
+```bash
+uv run --python 3.11 main.py point \
+  ".cache/graphcast/outputs/source-era5_date-2022-01-01_res-1.0_levels-13_steps-04.forecast.nc" \
+  --variable 2m_temperature \
+  --lat 33.9425 \
+  --lon -118.4081 \
+  --units f
+```
+
 Use explicit files instead of a bundle:
 
 ```bash
